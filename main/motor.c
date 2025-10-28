@@ -1,0 +1,215 @@
+#include "motor.h"
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/gpio.h"
+#include "driver/ledc.h"
+#include "esp_err.h"
+#include "esp_log.h"
+
+
+// ------------------------
+// Pinbelegung anpassen!
+// ------------------------
+#define MOTOR_A_PWM_PIN    9 // PWM_PIN A1, OI9
+#define MOTOR_A_IN1_PIN    0
+#define MOTOR_A_IN2_PIN    1
+
+#define MOTOR_B_PWM_PIN    7
+#define MOTOR_B_IN1_PIN    8
+#define MOTOR_B_IN2_PIN    8
+
+// PWM-Konfiguration
+#define LEDC_MODE          LEDC_LOW_SPEED_MODE
+#define LEDC_TIMER         LEDC_TIMER_0
+#define LEDC_FREQ_HZ       20000
+#define LEDC_DUTY_RES      LEDC_TIMER_10_BIT
+#define LEDC_MAX_DUTY      ((1 << LEDC_DUTY_RES) - 1)
+
+#define LEDC_CHANNEL_A     LEDC_CHANNEL_0
+#define LEDC_CHANNEL_B     LEDC_CHANNEL_1
+
+static void motor_set(int motor, int speed);
+static void motor_stop(int motor);
+static void motor_coast(int motor);
+
+// ------------------------------------------------------------
+// Initialisierung
+// ------------------------------------------------------------
+void motor_init(void)
+{
+    // Timer konfigurieren
+    ledc_timer_config_t ledc_timer = {
+        .speed_mode       = LEDC_MODE,
+        .timer_num        = LEDC_TIMER,
+        .duty_resolution  = LEDC_DUTY_RES,
+        .freq_hz          = LEDC_FREQ_HZ,
+        .clk_cfg          = LEDC_AUTO_CLK
+    };
+    ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+
+    // PWM-Kanal Motor A
+    ledc_channel_config_t ledc_channel_a = {
+        .gpio_num       = MOTOR_A_PWM_PIN,
+        .speed_mode     = LEDC_MODE,
+        .channel        = LEDC_CHANNEL_A,
+        .timer_sel      = LEDC_TIMER,
+        .duty           = 0,
+        .hpoint         = 0
+    };
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_a));
+
+    // PWM-Kanal Motor B
+    ledc_channel_config_t ledc_channel_b = {
+        .gpio_num       = MOTOR_B_PWM_PIN,
+        .speed_mode     = LEDC_MODE,
+        .channel        = LEDC_CHANNEL_B,
+        .timer_sel      = LEDC_TIMER,
+        .duty           = 0,
+        .hpoint         = 0
+    };
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_b));
+
+    // Richtungs-Pins konfigurieren
+    gpio_config_t io_conf = {
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = (1ULL << MOTOR_A_IN1_PIN) |
+                        (1ULL << MOTOR_A_IN2_PIN) |
+                        (1ULL << MOTOR_B_IN1_PIN) |
+                        (1ULL << MOTOR_B_IN2_PIN)
+    };
+    gpio_config(&io_conf);
+}
+
+// ------------------------------------------------------------
+// Motorsteuerung intern
+// ------------------------------------------------------------
+static void motor_set(int motor, int speed)
+{
+    int dir1, dir2;
+    int duty = abs(speed);
+
+    if (motor == 0) { // Motor A
+        dir1 = MOTOR_A_IN1_PIN;
+        dir2 = MOTOR_A_IN2_PIN;
+        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, duty);
+        ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_A);
+    } else { // Motor B
+        dir1 = MOTOR_B_IN1_PIN;
+        dir2 = MOTOR_B_IN2_PIN;
+        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, duty);
+        ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_B);
+    }
+
+    if (speed > 0) {
+        gpio_set_level(dir1, 1);
+        gpio_set_level(dir2, 0);
+    } else if (speed < 0) {
+        gpio_set_level(dir1, 0);
+        gpio_set_level(dir2, 1);
+    } else {
+        gpio_set_level(dir1, 0);
+        gpio_set_level(dir2, 0);
+    }
+}
+
+static void motor_stop(int motor)
+{
+    int dir1 = (motor == 0) ? MOTOR_A_IN1_PIN : MOTOR_B_IN1_PIN;
+    int dir2 = (motor == 0) ? MOTOR_A_IN2_PIN : MOTOR_B_IN2_PIN;
+
+    // beide Pins HIGH -> aktiv bremsen
+    gpio_set_level(dir1, 1);
+    gpio_set_level(dir2, 1);
+
+    if (motor == 0)
+        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, 0);
+    else
+        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 0);
+
+    ledc_update_duty(LEDC_MODE, (motor == 0) ? LEDC_CHANNEL_A : LEDC_CHANNEL_B);
+}
+
+static void motor_coast(int motor)
+{
+    int dir1 = (motor == 0) ? MOTOR_A_IN1_PIN : MOTOR_B_IN1_PIN;
+    int dir2 = (motor == 0) ? MOTOR_A_IN2_PIN : MOTOR_B_IN2_PIN;
+
+    // beide LOW -> Freilauf
+    gpio_set_level(dir1, 0);
+    gpio_set_level(dir2, 0);
+
+    if (motor == 0)
+        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, 0);
+    else
+        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 0);
+
+    ledc_update_duty(LEDC_MODE, (motor == 0) ? LEDC_CHANNEL_A : LEDC_CHANNEL_B);
+}
+
+// ------------------------------------------------------------
+// Öffentliche API-Funktionen
+// ------------------------------------------------------------
+
+void motorA_for(uint8_t seconds)
+{
+    ESP_LOGI("GAP", "BLE GAP EVENT - A forward");
+
+    motor_set(0, LEDC_MAX_DUTY / 2);
+    vTaskDelay(pdMS_TO_TICKS(seconds * 1000));
+    motor_stop(0);
+    // motor_coast(0);
+
+}
+
+void motorA_back(uint8_t seconds)
+{
+    ESP_LOGI("GAP", "BLE GAP EVENT - A rückwärts");
+
+    motor_set(0, -(LEDC_MAX_DUTY / 2));
+    vTaskDelay(pdMS_TO_TICKS(seconds * 1000));
+    // motor_stop(0);
+    motor_coast(0);
+}
+
+void motorA_break(void)
+{
+    ESP_LOGI("GAP", "BLE GAP EVENT - A bremse");
+    motor_stop(0);
+}
+
+void motorA_free(void)
+{
+    ESP_LOGI("GAP", "BLE GAP EVENT - A freilauf");
+    motor_coast(0);
+}
+
+void motorB_for(uint8_t seconds)
+{
+    ESP_LOGI("GAP", "BLE GAP EVENT - B vorwärts");
+    motor_set(1, LEDC_MAX_DUTY / 2);
+    vTaskDelay(pdMS_TO_TICKS(seconds * 1000));
+    // motor_stop(1);
+    motor_coast(1);
+}
+
+void motorB_back(uint8_t seconds)
+{
+    ESP_LOGI("GAP", "BLE GAP EVENT - Brückwärts");
+    motor_set(1, -(LEDC_MAX_DUTY / 2));
+    vTaskDelay(pdMS_TO_TICKS(seconds * 1000));
+    // motor_stop(1);
+    motor_coast(1);
+}
+
+void motorB_break(void)
+{
+    ESP_LOGI("GAP", "BLE GAP EVENT - B bremse");
+    motor_stop(1);
+}
+
+void motorB_free(void)
+{
+    ESP_LOGI("GAP", "BLE GAP EVENT - B freilauf");
+    motor_coast(1);
+}
