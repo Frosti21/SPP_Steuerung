@@ -11,13 +11,13 @@
 // ------------------------
 // Pinbelegung anpassen!
 // ------------------------
-#define MOTOR_A_PWM_PIN    9 // PWM_PIN A1, OI9
 #define MOTOR_A_IN1_PIN    0
 #define MOTOR_A_IN2_PIN    1
+#define MOTOR_A_PWM_PIN    9 // PWM_PIN A1, OI9
 
+#define MOTOR_B_IN1_PIN    5
+#define MOTOR_B_IN2_PIN    6
 #define MOTOR_B_PWM_PIN    7
-#define MOTOR_B_IN1_PIN    8
-#define MOTOR_B_IN2_PIN    8
 
 // PWM-Konfiguration
 #define LEDC_MODE          LEDC_LOW_SPEED_MODE

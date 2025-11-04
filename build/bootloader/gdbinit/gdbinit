@@ -1,0 +1,2 @@
+source /Users/markusbockle/Programmieren/EmbeddedSystems_BB_WS25/BLE-Empfaenger/build/bootloader/gdbinit/symbols
+source /Users/markusbockle/Programmieren/EmbeddedSystems_BB_WS25/BLE-Empfaenger/build/bootloader/gdbinit/connect
