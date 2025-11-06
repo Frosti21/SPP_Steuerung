@@ -221,7 +221,6 @@ void host_tast(void *param)
 void connect_ble(void)
 {
     nvs_flash_init();                          // 1 - Initialize NVS flash using
-    // esp_nimble_hci_and_controller_init();      // 2 - Initialize ESP controller
     nimble_port_init();                        // 3 - Initialize the host stack
     ble_svc_gap_device_name_set("BLE-Server"); // 4 - Initialize NimBLE configuration - server name
     ble_svc_gap_init();                        // 4 - Initialize NimBLE configuration - gap service
@@ -234,16 +233,7 @@ void connect_ble(void)
 
 void app_main()
 {
-
-    // gpoi_set_dircetion(GPIO_NUM_0, GPIO_MODE_INPUT);
-    // gpoi_set_dircetion(GPIO_NUM_2, GPIO_MODE_OUTPUT);
-    // gpoi_set_dircetion(GPIO_NUM_13, GPIO_MODE_OUTPUT);
     connect_ble();
     motor_init();
     configure_led();
-    // led_forward();
-
-
-    // xTaskCreate(boot_creds_clear, "boot_creds_clear", 2048, NULL, 5, NULL);
-
 }
