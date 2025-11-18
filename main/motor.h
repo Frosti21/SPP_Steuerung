@@ -4,15 +4,8 @@
 #include <stdint.h>
 
 void motor_init(void);
-
-// Motor A
-void motorA_for(uint8_t seconds);
-void motorA_back(uint8_t seconds);
-void motorA_break(void);
-
-// Motor B
-void motorB_for(uint8_t seconds);
-void motorB_back(uint8_t seconds);
-void motorB_break(void);
+void motor_coast(int motor);
+void motor_stop(int motor);
+void motor_set(int motor, int speed);
 
 #endif // MOTOR_H

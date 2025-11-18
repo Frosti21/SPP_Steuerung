@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -14,11 +13,12 @@
 #include "sdkconfig.h"
 #include "driver/gpio.h"
 #include "driver/ledc.h"
+#include <stdio.h>
 #include <time.h>
 #include <ctype.h> 
 
 
-#include "motor.h"
+#include "motor_control.h"
 #include "leds.h"
 
 
@@ -62,7 +62,7 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         // gpio_set_level(GPIO_NUM_2,1);
         
         led_forward();
-        motorA_for(2);
+        forward(2);
         
     }
     else if ((strncmp(data, "backward", ctxt->om->om_len) == 0)  | (strncmp(data, "b", ctxt->om->om_len) == 0)|
@@ -71,14 +71,14 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         ESP_LOGI("GAP", "BLE GAP EVENT - backward");
         // gpio_set_level(GPIO_NUM_2,1);
         led_backward();
-        motorA_back(2);
+        backward(2);
     }
     else if ((strncmp(data, "break", ctxt->om->om_len) == 0) | (strncmp(data, "br", ctxt->om->om_len) == 0)|
     (strncmp(data, "x", ctxt->om->om_len) == 0) | (strncmp(data, " ", ctxt->om->om_len) == 0))
     {
         ESP_LOGI("GAP", "BLE GAP EVENT - break");
         led_break();
-        motorA_break();
+        stop();
     }
     else if ((strncmp(data, "left", ctxt->om->om_len) == 0) | (strncmp(data, "l", ctxt->om->om_len) == 0)|
     (strncmp(data, "<", ctxt->om->om_len) == 0)| (strncmp(data, "a", ctxt->om->om_len) == 0))
@@ -86,26 +86,23 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         ESP_LOGI("GAP", "BLE GAP EVENT - left");
 
         led_left();        
-        motorB_for(3);
+        left(2);
         
     }
     else if ((strncmp(data, "right", ctxt->om->om_len) == 0) | (strncmp(data, "r", ctxt->om->om_len) == 0)|
     (strncmp(data, ">", ctxt->om->om_len) == 0) | (strncmp(data, "d", ctxt->om->om_len) == 0))
     {
         printf("right\n");
-        led_right();
         ESP_LOGI("GAP", "BLE GAP EVENT - right");
-
-        motorB_back(3);
+        led_right();
+        right(2);
     }
     else if ((strncmp(data, "off", ctxt->om->om_len) == 0) | (strncmp(data, "o", ctxt->om->om_len) == 0))
     {
         printf("off\n");
         led_off();
-
         ESP_LOGI("GAP", "BLE GAP EVENT - right");
-
-        motorB_back(3);
+        stop();
     }
     else{
         printf("Data from the client??: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
@@ -234,6 +231,6 @@ void connect_ble(void)
 void app_main()
 {
     connect_ble();
-    motor_init();
+    control_init();
     configure_led();
 }

@@ -1,5 +1,3 @@
-#include "motor.h"
-#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
@@ -7,6 +5,8 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
+#include "motor.h"
+#include <stdio.h>
 
 // ------------------------
 // Pinbelegung anpassen!
@@ -29,9 +29,9 @@
 #define LEDC_CHANNEL_A     LEDC_CHANNEL_0
 #define LEDC_CHANNEL_B     LEDC_CHANNEL_1
 
-static void motor_set(int motor, int speed);
-static void motor_stop(int motor);
-static void motor_coast(int motor);
+void motor_set(int motor, int speed);
+void motor_stop(int motor);
+void motor_coast(int motor);
 
 // ------------------------------------------------------------
 // Initialisierung
@@ -84,7 +84,7 @@ void motor_init(void)
 // ------------------------------------------------------------
 // Motorsteuerung intern
 // ------------------------------------------------------------
-static void motor_set(int motor, int speed)
+void motor_set(int motor, int speed)
 {
     int dir1, dir2;
     int duty = abs(speed);
@@ -113,7 +113,7 @@ static void motor_set(int motor, int speed)
     }
 }
 
-static void motor_stop(int motor)
+void motor_stop(int motor)
 {
     int dir1 = (motor == 0) ? MOTOR_A_IN1_PIN : MOTOR_B_IN1_PIN;
     int dir2 = (motor == 0) ? MOTOR_A_IN2_PIN : MOTOR_B_IN2_PIN;
@@ -125,12 +125,13 @@ static void motor_stop(int motor)
     if (motor == 0)
         ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, 0);
     else
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 0);
+        // ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 0);
+        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 1024);
 
     ledc_update_duty(LEDC_MODE, (motor == 0) ? LEDC_CHANNEL_A : LEDC_CHANNEL_B);
 }
 
-static void motor_coast(int motor)
+void motor_coast(int motor)
 {
     int dir1 = (motor == 0) ? MOTOR_A_IN1_PIN : MOTOR_B_IN1_PIN;
     int dir2 = (motor == 0) ? MOTOR_A_IN2_PIN : MOTOR_B_IN2_PIN;
@@ -145,71 +146,4 @@ static void motor_coast(int motor)
         ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 0);
 
     ledc_update_duty(LEDC_MODE, (motor == 0) ? LEDC_CHANNEL_A : LEDC_CHANNEL_B);
-}
-
-// ------------------------------------------------------------
-// Öffentliche API-Funktionen
-// ------------------------------------------------------------
-
-void motorA_for(uint8_t seconds)
-{
-    ESP_LOGI("GAP", "BLE GAP EVENT - A forward");
-
-    motor_set(0, LEDC_MAX_DUTY / 2);
-    vTaskDelay(pdMS_TO_TICKS(seconds * 1000));
-    motor_stop(0);
-    // motor_coast(0);
-
-}
-
-void motorA_back(uint8_t seconds)
-{
-    ESP_LOGI("GAP", "BLE GAP EVENT - A rückwärts");
-
-    motor_set(0, -(LEDC_MAX_DUTY / 2));
-    vTaskDelay(pdMS_TO_TICKS(seconds * 1000));
-    // motor_stop(0);
-    motor_coast(0);
-}
-
-void motorA_break(void)
-{
-    ESP_LOGI("GAP", "BLE GAP EVENT - A bremse");
-    motor_stop(0);
-}
-
-void motorA_free(void)
-{
-    ESP_LOGI("GAP", "BLE GAP EVENT - A freilauf");
-    motor_coast(0);
-}
-
-void motorB_for(uint8_t seconds)
-{
-    ESP_LOGI("GAP", "BLE GAP EVENT - B vorwärts");
-    motor_set(1, LEDC_MAX_DUTY / 2);
-    vTaskDelay(pdMS_TO_TICKS(seconds * 1000));
-    // motor_stop(1);
-    motor_coast(1);
-}
-
-void motorB_back(uint8_t seconds)
-{
-    ESP_LOGI("GAP", "BLE GAP EVENT - Brückwärts");
-    motor_set(1, -(LEDC_MAX_DUTY / 2));
-    vTaskDelay(pdMS_TO_TICKS(seconds * 1000));
-    // motor_stop(1);
-    motor_coast(1);
-}
-
-void motorB_break(void)
-{
-    ESP_LOGI("GAP", "BLE GAP EVENT - B bremse");
-    motor_stop(1);
-}
-
-void motorB_free(void)
-{
-    ESP_LOGI("GAP", "BLE GAP EVENT - B freilauf");
-    motor_coast(1);
 }
