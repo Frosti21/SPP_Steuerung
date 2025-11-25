@@ -4,15 +4,6 @@
 #include <stdint.h>
 #include "motor.h"
 
-int control_init(void);
-
-// Motor A
-void forward(uint8_t seconds);
-void backward(uint8_t seconds);
-void stop(void);
-
-// Motor B
-void left(uint8_t seconds);
-void right(uint8_t seconds);
+void motor_control(void*);
 
 #endif // MOTOR_CONTROL_H
