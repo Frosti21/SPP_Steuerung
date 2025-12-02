@@ -55,7 +55,8 @@ void motor_init(void)
         .channel        = LEDC_CHANNEL_A,
         .timer_sel      = LEDC_TIMER,
         .duty           = 0,
-        .hpoint         = 0
+        .hpoint         = 0,
+        .flags.output_invert = 1
     };
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_a));
 
@@ -66,7 +67,8 @@ void motor_init(void)
         .channel        = LEDC_CHANNEL_B,
         .timer_sel      = LEDC_TIMER,
         .duty           = 0,
-        .hpoint         = 0
+        .hpoint         = 0,
+        .flags.output_invert = 1
     };
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_b));
 
@@ -141,7 +143,7 @@ void motor_B_stop(int motor)
 {
     gpio_set_level(MOTOR_B_IN1_PIN, 1);
     gpio_set_level(MOTOR_B_IN2_PIN, 1);
-    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 1024);
+    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 0);
     ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_B);
 }
 

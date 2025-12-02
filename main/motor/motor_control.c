@@ -13,34 +13,33 @@
 #define LEDC_DUTY_RES      LEDC_TIMER_10_BIT
 #define LEDC_MAX_DUTY      ((1 << LEDC_DUTY_RES) - 1)
 
-
+static uint16_t speed = 500;
 
 static void forward(uint8_t seconds)
 {
     ESP_LOGI("MOTOR_CONTROL", "Motor A forward");
-    // motor_set(0, -LEDC_MAX_DUTY / 2);
-    motor_A_set(0, -100);
-    //vTaskDelay(pdMS_TO_TICKS(seconds * 1000));
-    // motor_A_coast(0);
-    // motor_coast(0);
-
+    motor_A_set(0, -(speed));
 }
 
 static void backward(uint8_t seconds)
 {
     ESP_LOGI("MOTOR_CONTROL", "Motor A backward");
-    // motor_set(0, (LEDC_MAX_DUTY / 2)); LEDC_MAX_DUTY -> 1024
-    motor_A_set(0, (500));
-    // vTaskDelay(pdMS_TO_TICKS(seconds * 1000));
-    // motor_A_coast(0);
+    motor_A_set(0, speed);
 }
 
 static void stop(void)
 {
     ESP_LOGI("MOTOR_CONTROL", "Motor A bremse");
-    motor_A_stop(0);
-    ESP_LOGI("MOTOR_CONTROL", "Motor B bremse");
     motor_A_stop(1);
+}
+
+
+
+
+static void steer_neutral(void)
+{
+    ESP_LOGI("MOTOR_CONTROL", "Motor B Neutral");
+    motor_B_stop(0);
 }
 
 static void shutdown(void)
@@ -55,25 +54,13 @@ static void shutdown(void)
 void left(uint8_t seconds)
 {
     ESP_LOGI("MOTOR_CONTROL", "Motor B left");
-    // motor_set(1, LEDC_MAX_DUTY / 2);
-    // motor_set(nr, PWM_lengt_up/down);
-    motor_B_set(1, (200));
-    // vTaskDelay(pdMS_TO_TICKS(seconds * 2000));
-    // motor_stop(1);
-    // motor_coast(1);
-    // motor_B_stop(1);
-
+    motor_B_set(1, 500);
 }
 
 void right(uint8_t seconds)
 {
     ESP_LOGI("MOTOR_CONTROL", "Motor B right");
-    // motor_set(1, -(LEDC_MAX_DUTY / 2));
-    // motor_set(nr, PWM_lengt_up/down);
-    motor_B_set(1, -200);
-    // vTaskDelay(pdMS_TO_TICKS(seconds * 2000));
-    // motor_coast(1);
-    // motor_B_stop(1);
+    motor_B_set(1, -500);
 }
 
 
@@ -81,7 +68,7 @@ void steering_control(void*)
 {
     // motor_control_init();
     int rx = 0;
-    uint8_t value = 1;
+    int8_t value = 0;
     while (1) {
         if (xQueueReceive(steering_queue, &rx, portMAX_DELAY)) {
             printf("Steering - Empfangen: %d\n", rx);
@@ -91,36 +78,74 @@ void steering_control(void*)
                 stop();
                 break;
             case 4:
-                left(value);        
+            if (value < 0){
+                steer_neutral();
+                value = 0;
+            } else{
+                value = 1;
+                left(1);        
+                }
                 break;
             case 5:
-                right(value);
+            if (value > 0){
+                steer_neutral();
+                value = 0;
+            } else{
+                value = -1;
+                right(1);
+            }
             default:
-            shutdown();
                 break;
             }
         }
         vTaskDelay(pdMS_TO_TICKS(20));
     }
-    
 }
 
 
 void acc_control(void*)
 {
-    // motor_control_init();
     int rx = 0;
-    uint8_t value = 1;
+    int8_t value = 0;
+    int16_t ry = 0;
     while (1) {
+        if (xQueueReceive(speed_queue, &ry, portMAX_DELAY)) {
+            printf("SPEED - Empfangen: %d\n", ry);
+            xQueueReset(speed_queue);
+
+            if ((ry < 2000)){
+                speed = 400;
+            } else if ((ry < 2500)){
+                speed = 600;
+            } else if ((ry < 3000) ){
+                speed = 800;
+            } else if ((ry < 3500)){
+                speed = 1000;
+            } else {
+                speed = 500;
+            }
+        }
         if (xQueueReceive(acc_queue, &rx, portMAX_DELAY)) {
             printf("Acc - Empfangen: %d\n", rx);
             switch (rx)
             {
             case 1:
-                forward(value);
+            if (value < 0){
+                stop();
+                value = 0;
+            } else {
+                value = 1;
+                forward(1);
+            }
                 break;
             case 2:
-                backward(value);
+            if (value > 0){
+                stop();
+                value = 0;
+            } else {
+                value = -1;
+                backward(1);
+            }
                 break;
             case 3:
                 stop();
@@ -129,20 +154,15 @@ void acc_control(void*)
                 shutdown();
                 break;
             default:
-            shutdown();
                 break;
             }
         }
-        
         vTaskDelay(pdMS_TO_TICKS(20));
     }
-    
 }
 
 
-
 void motor_control(void){
-
     ESP_LOGI("MOTOR_CONTROL", "Start Init");
     motor_init();
     xTaskCreate(steering_control, "STEERING_TASK", 2048, NULL, 7, NULL);

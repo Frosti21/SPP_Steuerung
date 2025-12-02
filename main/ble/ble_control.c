@@ -16,8 +16,7 @@
 char *TAG = "BLE-Server";
 uint8_t ble_addr_type;
 
-
-// Write data to ESP32 defined as server
+// Lese die Empfangenen Daten und Schreibe auf....
 static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
     // printf("Data from the client__: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
@@ -25,6 +24,7 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     // char * data = (char *)ctxt->om->om_data;
     // printf("Numern Erzeugung: %d\n",strcmp(data, "Forward\0"));
     int send = 0;
+    int send_poti = 0;
     char data[64];
     size_t len = ctxt->om->om_len;
 
@@ -41,22 +41,14 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     for (size_t i = 0; i < len; i++) {
         data[i] = tolower((unsigned char)data[i]);
     }
-
     printf("Data from client: %s\n", data);
 
-    //  Einfache Befehle ohne Parameter
     if ((strncmp(data, "forward", ctxt->om->om_len) == 0) | (strncmp(data, "f", ctxt->om->om_len) == 0)|
         (strncmp(data, "^", ctxt->om->om_len) == 0)| (strncmp(data, "w", ctxt->om->om_len) == 0))
     {
-
         ESP_LOGI("GAP", "BLE GAP EVENT - forward");
         send = 1;
         xQueueSend(acc_queue, &send, portMAX_DELAY);
-        // gpio_set_level(GPIO_NUM_2,1);
-        
-        // led_forward();
-        // forward(2);
-        
     }
     else if ((strncmp(data, "backward", ctxt->om->om_len) == 0)  | (strncmp(data, "b", ctxt->om->om_len) == 0)|
     (strncmp(data, "v", ctxt->om->om_len) == 0) | (strncmp(data, "s", ctxt->om->om_len) == 0))
@@ -64,10 +56,6 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         ESP_LOGI("GAP", "BLE GAP EVENT - backward");
         send = 2;
         xQueueSend(acc_queue, &send, portMAX_DELAY);
-
-        // gpio_set_level(GPIO_NUM_2,1);
-        // led_backward();
-        // backward(2);
     }
     else if ((strncmp(data, "break", ctxt->om->om_len) == 0) | (strncmp(data, "br", ctxt->om->om_len) == 0)|
     (strncmp(data, "x", ctxt->om->om_len) == 0) | (strncmp(data, " ", ctxt->om->om_len) == 0))
@@ -75,9 +63,6 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         ESP_LOGI("GAP", "BLE GAP EVENT - break");
         send = 3;
         xQueueSend(acc_queue, &send, portMAX_DELAY);
-
-        // led_break();
-        // stop();
     }
     else if ((strncmp(data, "left", ctxt->om->om_len) == 0) | (strncmp(data, "l", ctxt->om->om_len) == 0)|
     (strncmp(data, "<", ctxt->om->om_len) == 0)| (strncmp(data, "a", ctxt->om->om_len) == 0))
@@ -85,10 +70,6 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         ESP_LOGI("GAP", "BLE GAP EVENT - left");
         send = 4;
         xQueueSend(steering_queue, &send, portMAX_DELAY);
-
-        // led_left();        
-        // left(2);
-        
     }
     else if ((strncmp(data, "right", ctxt->om->om_len) == 0) | (strncmp(data, "r", ctxt->om->om_len) == 0)|
     (strncmp(data, ">", ctxt->om->om_len) == 0) | (strncmp(data, "d", ctxt->om->om_len) == 0))
@@ -97,37 +78,27 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         ESP_LOGI("GAP", "BLE GAP EVENT - right");
         send = 5;
         xQueueSend(steering_queue, &send, portMAX_DELAY);
-
-        // led_right();
-        // right(2);
     }
     else if ((strncmp(data, "off", ctxt->om->om_len) == 0) | (strncmp(data, "o", ctxt->om->om_len) == 0))
     {
         printf("off\n");
-        // led_off();
         ESP_LOGI("GAP", "BLE GAP EVENT - right");
         send = 6;
         xQueueSend(acc_queue, &send, portMAX_DELAY);
-
-        // stop();
     }
-    else if ((strncmp(data, "s", ctxt->om->om_len) == 0))
-    {
+    else if (data[0] == 's'){
         printf("SpeedWerte: %s\n", data);
-        // led_off();
-        // ESP_LOGI("GAP", "BLE GAP EVENT - right");
-        // send = 6;
-        // xQueueSend(my_queue, &send, portMAX_DELAY);
-
-        // stop();
+        send_poti = 0;
+        sscanf(data, "s%d", &send_poti); 
+        xQueueReset(speed_queue);
+        xQueueSend(speed_queue, &send_poti, portMAX_DELAY);
+        send_poti = 0;
     }
     else{
         printf("Data from the client??: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
         send = 0;
         xQueueSend(my_queue, &send, portMAX_DELAY);
     }
-    
-    
     return 0;
 }
 
