@@ -4,6 +4,6 @@
 #include <stdint.h>
 #include "motor.h"
 
-void motor_control(void*);
+void motor_control(void);
 
 #endif // MOTOR_CONTROL_H

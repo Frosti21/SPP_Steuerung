@@ -12,7 +12,7 @@
 #include <ctype.h> 
 
 #include "ble_control.h"
-
+#include "comms.h"
 char *TAG = "BLE-Server";
 uint8_t ble_addr_type;
 
@@ -51,7 +51,7 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
 
         ESP_LOGI("GAP", "BLE GAP EVENT - forward");
         send = 1;
-        xQueueSend(my_queue, &send, portMAX_DELAY);
+        xQueueSend(acc_queue, &send, portMAX_DELAY);
         // gpio_set_level(GPIO_NUM_2,1);
         
         // led_forward();
@@ -63,7 +63,7 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     {
         ESP_LOGI("GAP", "BLE GAP EVENT - backward");
         send = 2;
-        xQueueSend(my_queue, &send, portMAX_DELAY);
+        xQueueSend(acc_queue, &send, portMAX_DELAY);
 
         // gpio_set_level(GPIO_NUM_2,1);
         // led_backward();
@@ -74,7 +74,7 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     {
         ESP_LOGI("GAP", "BLE GAP EVENT - break");
         send = 3;
-        xQueueSend(my_queue, &send, portMAX_DELAY);
+        xQueueSend(acc_queue, &send, portMAX_DELAY);
 
         // led_break();
         // stop();
@@ -84,7 +84,7 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     {
         ESP_LOGI("GAP", "BLE GAP EVENT - left");
         send = 4;
-        xQueueSend(my_queue, &send, portMAX_DELAY);
+        xQueueSend(steering_queue, &send, portMAX_DELAY);
 
         // led_left();        
         // left(2);
@@ -96,7 +96,7 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         printf("right\n");
         ESP_LOGI("GAP", "BLE GAP EVENT - right");
         send = 5;
-        xQueueSend(my_queue, &send, portMAX_DELAY);
+        xQueueSend(steering_queue, &send, portMAX_DELAY);
 
         // led_right();
         // right(2);
@@ -107,7 +107,17 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         // led_off();
         ESP_LOGI("GAP", "BLE GAP EVENT - right");
         send = 6;
-        xQueueSend(my_queue, &send, portMAX_DELAY);
+        xQueueSend(acc_queue, &send, portMAX_DELAY);
+
+        // stop();
+    }
+    else if ((strncmp(data, "s", ctxt->om->om_len) == 0))
+    {
+        printf("SpeedWerte: %s\n", data);
+        // led_off();
+        // ESP_LOGI("GAP", "BLE GAP EVENT - right");
+        // send = 6;
+        // xQueueSend(my_queue, &send, portMAX_DELAY);
 
         // stop();
     }

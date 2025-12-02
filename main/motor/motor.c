@@ -84,22 +84,15 @@ void motor_init(void)
 // ------------------------------------------------------------
 // Motorsteuerung intern
 // ------------------------------------------------------------
-void motor_set(int motor, int speed)
+void motor_A_set(int motor, int speed)
 {
     int dir1, dir2;
     int duty = abs(speed);
+    dir1 = MOTOR_A_IN1_PIN;
+    dir2 = MOTOR_A_IN2_PIN;
+    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, duty);
+    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_A);
 
-    if (motor == 0) { // Motor A
-        dir1 = MOTOR_A_IN1_PIN;
-        dir2 = MOTOR_A_IN2_PIN;
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, duty);
-        ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_A);
-    } else { // Motor B
-        dir1 = MOTOR_B_IN1_PIN;
-        dir2 = MOTOR_B_IN2_PIN;
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, duty);
-        ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_B);
-    }
 
     if (speed > 0) {
         gpio_set_level(dir1, 1);
@@ -113,37 +106,60 @@ void motor_set(int motor, int speed)
     }
 }
 
-void motor_stop(int motor)
+void motor_A_stop(int motor)
 {
-    int dir1 = (motor == 0) ? MOTOR_A_IN1_PIN : MOTOR_B_IN1_PIN;
-    int dir2 = (motor == 0) ? MOTOR_A_IN2_PIN : MOTOR_B_IN2_PIN;
-
     // beide Pins HIGH -> aktiv bremsen
-    gpio_set_level(dir1, 1);
-    gpio_set_level(dir2, 1);
-
-    if (motor == 0)
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, 0);
-    else
-        // ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 0);
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 1024);
-
-    ledc_update_duty(LEDC_MODE, (motor == 0) ? LEDC_CHANNEL_A : LEDC_CHANNEL_B);
+    gpio_set_level(MOTOR_A_IN1_PIN, 1);
+    gpio_set_level(MOTOR_A_IN2_PIN, 1);
+    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, 0);
+    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_A );
 }
 
-void motor_coast(int motor)
+
+void motor_B_set(int motor, int speed)
 {
-    int dir1 = (motor == 0) ? MOTOR_A_IN1_PIN : MOTOR_B_IN1_PIN;
-    int dir2 = (motor == 0) ? MOTOR_A_IN2_PIN : MOTOR_B_IN2_PIN;
+    int dir1, dir2;
+    int duty = abs(speed);
+    dir1 = MOTOR_B_IN1_PIN;
+    dir2 = MOTOR_B_IN2_PIN;
+    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, duty);
+    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_B);
 
+    if (speed > 0) {
+        gpio_set_level(dir1, 1);
+        gpio_set_level(dir2, 0);
+    } else if (speed < 0) {
+        gpio_set_level(dir1, 0);
+        gpio_set_level(dir2, 1);
+    } else {
+        gpio_set_level(dir1, 0);
+        gpio_set_level(dir2, 0);
+    }
+}
+
+void motor_B_stop(int motor)
+{
+    gpio_set_level(MOTOR_B_IN1_PIN, 1);
+    gpio_set_level(MOTOR_B_IN2_PIN, 1);
+    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 1024);
+    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_B);
+}
+
+void motor_A_coast(int motor)
+{
     // beide LOW -> Freilauf
-    gpio_set_level(dir1, 0);
-    gpio_set_level(dir2, 0);
+    gpio_set_level(MOTOR_A_IN1_PIN, 0);
+    gpio_set_level(MOTOR_A_IN2_PIN, 0);
+    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, 0);
+    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_A);
+}
 
-    if (motor == 0)
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, 0);
-    else
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 0);
 
-    ledc_update_duty(LEDC_MODE, (motor == 0) ? LEDC_CHANNEL_A : LEDC_CHANNEL_B);
+void motor_B_coast(int motor)
+{
+    // beide LOW -> Freilauf
+    gpio_set_level(MOTOR_B_IN1_PIN, 0);
+    gpio_set_level(MOTOR_B_IN2_PIN, 0);
+    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 0);
+    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_B);
 }

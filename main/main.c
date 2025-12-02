@@ -42,9 +42,10 @@ void app_main()
 {
 
     comms_init(); // Task kommunikation
-    xTaskCreate(motor_control, "MOTOR_TASK", 2048, NULL, 13, NULL);
-    xTaskCreate(leds_control, "LED_TASK", 2048, NULL, 13, NULL);
+    motor_control();
+    // xTaskCreate(motor_control, "MOTOR_TASK", 2048, NULL, 6, NULL);
+    xTaskCreate(leds_control, "LED_TASK", 2048, NULL, 6, NULL);
     vTaskDelay(INIT_TIME_MS);
-    xTaskCreate(ble_task, "BLE_TASK", 4096, NULL, 10, NULL);
+    xTaskCreate(ble_task, "BLE_TASK", 4096, NULL, 6, NULL);
     
 }
