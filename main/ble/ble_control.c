@@ -102,7 +102,7 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     else{
         printf("Data from the client??: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
         send = 0;
-        xQueueSend(my_queue, &send, portMAX_DELAY);
+        xQueueSend(led_queue, &send, portMAX_DELAY);
     }
     return 0;
 }

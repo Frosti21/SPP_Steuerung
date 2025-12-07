@@ -13,7 +13,7 @@ void leds_control(void*)
     configure_led();
     int rx = 0;
     while (1) {
-        if (xQueueReceive(my_queue, &rx, portMAX_DELAY)) {
+        if (xQueueReceive(led_queue, &rx, portMAX_DELAY)) {
             printf("Empfangen: %d\n", rx);
             switch (rx)
             {
