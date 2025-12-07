@@ -24,7 +24,6 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     // char * data = (char *)ctxt->om->om_data;
     // printf("Numern Erzeugung: %d\n",strcmp(data, "Forward\0"));
     int send = 0;
-    int send_poti = 0;
     char data[64];
     size_t len = ctxt->om->om_len;
 
@@ -47,15 +46,19 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         (strncmp(data, "^", ctxt->om->om_len) == 0)| (strncmp(data, "w", ctxt->om->om_len) == 0))
     {
         ESP_LOGI("GAP", "BLE GAP EVENT - forward");
-        send = 1;
-        xQueueSend(acc_queue, &send, portMAX_DELAY);
+        // send = 1;
+        message_acc.type = 1;
+        message_acc.value = 1;
+        xQueueSend(acc_queue, &message_acc, portMAX_DELAY);
     }
     else if ((strncmp(data, "backward", ctxt->om->om_len) == 0)  | (strncmp(data, "b", ctxt->om->om_len) == 0)|
     (strncmp(data, "v", ctxt->om->om_len) == 0) | (strncmp(data, "s", ctxt->om->om_len) == 0))
     {
         ESP_LOGI("GAP", "BLE GAP EVENT - backward");
-        send = 2;
-        xQueueSend(acc_queue, &send, portMAX_DELAY);
+        // send = 2;
+        message_acc.type = 1;
+        message_acc.value = 2;
+        xQueueSend(acc_queue, &message_acc, portMAX_DELAY);
     }
     else if ((strncmp(data, "break", ctxt->om->om_len) == 0) | (strncmp(data, "br", ctxt->om->om_len) == 0)|
     (strncmp(data, "x", ctxt->om->om_len) == 0) | (strncmp(data, " ", ctxt->om->om_len) == 0))
@@ -88,11 +91,13 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     }
     else if (data[0] == 's'){
         printf("SpeedWerte: %s\n", data);
-        send_poti = 0;
-        sscanf(data, "s%d", &send_poti); 
-        xQueueReset(speed_queue);
-        xQueueSend(speed_queue, &send_poti, portMAX_DELAY);
-        send_poti = 0;
+        // send_poti = 0;
+        message_acc.type = 2;
+        message_acc.value = 2;
+        sscanf(data, "s%hu", &message_acc.value); 
+        xQueueReset(acc_queue);
+        xQueueSend(acc_queue, &message_acc, portMAX_DELAY);
+        // send_poti = 0;
     }
     else{
         printf("Data from the client??: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);

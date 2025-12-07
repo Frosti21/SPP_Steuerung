@@ -105,57 +105,55 @@ void steering_control(void*)
 
 void acc_control(void*)
 {
-    int rx = 0;
     int8_t value = 0;
-    int16_t ry = 0;
+    message_acc_type ry;
     while (1) {
-        if (xQueueReceive(speed_queue, &ry, portMAX_DELAY)) {
-            printf("SPEED - Empfangen: %d\n", ry);
-            xQueueReset(speed_queue);
-
-            if ((ry < 2000)){
-                speed = 400;
-            } else if ((ry < 2500)){
-                speed = 600;
-            } else if ((ry < 3000) ){
-                speed = 800;
-            } else if ((ry < 3500)){
-                speed = 1000;
-            } else {
-                speed = 500;
+        if (xQueueReceive(acc_queue, &ry, portMAX_DELAY)) {
+            printf("ACC_Queue - Empfangen: %d\n", ry.type);
+            if (ry.type == 1){
+                switch (ry.value)
+                {
+                case 1:
+                if (value < 0){
+                    stop();
+                    value = 0;
+                } else {
+                    value = 1;
+                    forward(1);
+                }
+                    break;
+                case 2:
+                if (value > 0){
+                    stop();
+                    value = 0;
+                } else {
+                    value = -1;
+                    backward(1);
+                }
+                    break;
+                case 3:
+                    stop();
+                    break;
+                case 6:
+                    shutdown();
+                    break;
+                default:
+                    break;
+                }
+            }else if (ry.type == 2){
+                if ((ry.value < 2000)){
+                    speed = 400;
+                } else if ((ry.value < 2500)){
+                    speed = 600;
+                } else if ((ry.value < 3000) ){
+                    speed = 800;
+                } else if ((ry.value < 3500)){
+                    speed = 1000;
+                } else {
+                    speed = 500;
+                }
             }
-        }
-        if (xQueueReceive(acc_queue, &rx, portMAX_DELAY)) {
-            printf("Acc - Empfangen: %d\n", rx);
-            switch (rx)
-            {
-            case 1:
-            if (value < 0){
-                stop();
-                value = 0;
-            } else {
-                value = 1;
-                forward(1);
-            }
-                break;
-            case 2:
-            if (value > 0){
-                stop();
-                value = 0;
-            } else {
-                value = -1;
-                backward(1);
-            }
-                break;
-            case 3:
-                stop();
-                break;
-            case 6:
-                shutdown();
-                break;
-            default:
-                break;
-            }
+            
         }
         vTaskDelay(pdMS_TO_TICKS(20));
     }
