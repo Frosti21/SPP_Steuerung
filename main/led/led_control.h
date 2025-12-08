@@ -1,8 +1,9 @@
-#ifndef LED_CONTROL
-#define LED_CONTROL
+#ifndef LED_CONTROL_H
+#define LED_CONTROL_H
 
-// #include <stdint.h>
-
+/*
+* LEDs für Test funktionen
+*/
 void leds_control(void*);
 
-#endif // LED_CONTROL
+#endif // LED_CONTROL_H

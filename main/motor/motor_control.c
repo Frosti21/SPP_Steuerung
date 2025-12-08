@@ -8,10 +8,6 @@
 #include <stdio.h>
 #include "motor_control.h"
 #include "comms.h"
-#include "motor.h"
-
-#define LEDC_DUTY_RES      LEDC_TIMER_10_BIT
-#define LEDC_MAX_DUTY      ((1 << LEDC_DUTY_RES) - 1)
 
 static uint16_t speed = 500;
 
@@ -63,10 +59,9 @@ void right(uint8_t seconds)
     motor_B_set(1, -500);
 }
 
-
+// Links/Rechts 
 void steering_control(void*)
 {
-    // motor_control_init();
     int rx = 0;
     int8_t value = 0;
     while (1) {
@@ -102,7 +97,8 @@ void steering_control(void*)
     }
 }
 
-
+// Geschwindigkeits Kontrolle
+// Vor/Zurück bzw. Geschwindigkeit
 void acc_control(void*)
 {
     int8_t value = 0;
@@ -159,7 +155,7 @@ void acc_control(void*)
     }
 }
 
-
+// Initialisierung der Motorfunktionstasks
 void motor_control(void){
     ESP_LOGI("MOTOR_CONTROL", "Start Init");
     motor_init();

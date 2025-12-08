@@ -1,3 +1,7 @@
+/*
+* How to run BLE on ESP32 with ESP-IDF https://www.youtube.com/watch?v=EIo5aZ3c89Q 
+* Beispiel Code: https://github.com/ashus3868/BLE-Connect
+*/
 #include "nvs_flash.h"
 
 
@@ -19,10 +23,7 @@ uint8_t ble_addr_type;
 // Lese die Empfangenen Daten und Schreibe auf....
 static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
-    // printf("Data from the client__: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
 
-    // char * data = (char *)ctxt->om->om_data;
-    // printf("Numern Erzeugung: %d\n",strcmp(data, "Forward\0"));
     int send = 0;
     char data[64];
     size_t len = ctxt->om->om_len;
@@ -30,18 +31,19 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     // Sicherheit: Länge begrenzen, damit data nicht überläuft
     if (len >= sizeof(data)) len = sizeof(data) - 1;
 
-    // 1Daten kopieren
+    // Daten kopieren
     memcpy(data, ctxt->om->om_data, len);
-
     //  Nullterminator hinzufügen
     data[len] = '\0';
-
     // Alles in Kleinbuchstaben umwandeln
     for (size_t i = 0; i < len; i++) {
         data[i] = tolower((unsigned char)data[i]);
     }
+
+    // Ausgabe der Empfangenen Daten
     printf("Data from client: %s\n", data);
 
+    // Daten vergleichen....
     if ((strncmp(data, "forward", ctxt->om->om_len) == 0) | (strncmp(data, "f", ctxt->om->om_len) == 0)|
         (strncmp(data, "^", ctxt->om->om_len) == 0)| (strncmp(data, "w", ctxt->om->om_len) == 0))
     {
@@ -113,7 +115,7 @@ static int device_read(uint16_t con_handle, uint16_t attr_handle, struct ble_gat
     os_mbuf_append(ctxt->om, "Data from the server", strlen("Data from the server"));
     return 0;
 }
-
+// Geräte Status
 static int device_status(uint16_t con_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
     os_mbuf_append(ctxt->om, "ESP-Ready-For-Move", strlen("ESP-Ready-For-Move"));
@@ -199,7 +201,7 @@ void ble_app_on_sync(void)
     ble_app_advertise();                     // Define the BLE connection
 }
 
-// The infinite task
+// The init task für Nimble
 void host_task(void *param)
 {
     nimble_port_run(); // This function will return only when nimble_port_stop() is executed

@@ -1,3 +1,6 @@
+/*
+* Queues öffentlich machen, alles Programm greifen auf dieses Queues zu.
+*/
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 

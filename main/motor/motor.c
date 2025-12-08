@@ -8,9 +8,7 @@
 #include "motor.h"
 #include <stdio.h>
 
-// ------------------------
-// Pinbelegung anpassen!
-// ------------------------
+// Pinbelegung Motoren
 #define MOTOR_A_IN1_PIN    0
 #define MOTOR_A_IN2_PIN    1
 #define MOTOR_A_PWM_PIN    9 // PWM_PIN A1, OI9
@@ -29,13 +27,8 @@
 #define LEDC_CHANNEL_A     LEDC_CHANNEL_0
 #define LEDC_CHANNEL_B     LEDC_CHANNEL_1
 
-void motor_set(int motor, int speed);
-void motor_stop(int motor);
-void motor_coast(int motor);
 
-// ------------------------------------------------------------
-// Initialisierung
-// ------------------------------------------------------------
+// Initialisierung der PINs PWM usw... 
 void motor_init(void)
 {
     // Timer konfigurieren
@@ -82,10 +75,7 @@ void motor_init(void)
     };
     gpio_config(&io_conf);
 }
-
-// ------------------------------------------------------------
-// Motorsteuerung intern
-// ------------------------------------------------------------
+// Motor Ein - A
 void motor_A_set(int motor, int speed)
 {
     int dir1, dir2;
@@ -110,14 +100,13 @@ void motor_A_set(int motor, int speed)
 
 void motor_A_stop(int motor)
 {
-    // beide Pins HIGH -> aktiv bremsen
     gpio_set_level(MOTOR_A_IN1_PIN, 1);
     gpio_set_level(MOTOR_A_IN2_PIN, 1);
     ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_A, 0);
     ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_A );
 }
 
-
+// Motor Ein - B
 void motor_B_set(int motor, int speed)
 {
     int dir1, dir2;
@@ -146,7 +135,7 @@ void motor_B_stop(int motor)
     ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_B, 0);
     ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_B);
 }
-
+// Freilauf A
 void motor_A_coast(int motor)
 {
     // beide LOW -> Freilauf
@@ -156,7 +145,7 @@ void motor_A_coast(int motor)
     ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_A);
 }
 
-
+// Freilauf B
 void motor_B_coast(int motor)
 {
     // beide LOW -> Freilauf

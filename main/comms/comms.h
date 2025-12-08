@@ -1,6 +1,10 @@
 #ifndef COMMS_H
 #define COMMS_H
 
+// message_acc_type -> für die Geschwindigkeits kommunikation, zwei Funktionen über die selbe Queue
+// Type -> Geschwindigkeitswerte oder Richtung (Vor-Zurück)
+// Value -> Geschwindigkeit (von Poti) oder Vor/Zurück
+
 typedef struct {
     uint8_t type;
     uint16_t value;

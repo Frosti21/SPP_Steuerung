@@ -6,25 +6,6 @@
 #include "esp_event.h"
 
 
-#include "esp_nimble_hci.h"
-#include "nvs_flash.h"
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
-#include "host/ble_hs.h"
-
-#include "services/gap/ble_svc_gap.h"
-#include "services/gatt/ble_svc_gatt.h"
-
-#include "sdkconfig.h"
-
-#include "driver/gpio.h"
-#include "driver/ledc.h"
-
-#include <stdio.h>
-#include <time.h>
-#include <ctype.h> 
-
-
 #include "motor_control.h"
 #include "led_control.h"
 #include "ble_control.h"
@@ -34,16 +15,15 @@
 
 void ble_task(void *p)
 {
-    connect_ble();     // läuft nie zurück, blockiert aber nur EINE Task
-    vTaskDelete(NULL); // Wird nie erreicht, aber formal OK
+    connect_ble();     
+    vTaskDelete(NULL); 
 }
 
 void app_main()
 {
 
-    comms_init(); // Task kommunikation
+    comms_init(); // Task kommunikation - initialisieren 
     motor_control();
-    // xTaskCreate(motor_control, "MOTOR_TASK", 2048, NULL, 6, NULL);
     xTaskCreate(leds_control, "LED_TASK", 2048, NULL, 6, NULL);
     vTaskDelay(INIT_TIME_MS);
     xTaskCreate(ble_task, "BLE_TASK", 4096, NULL, 6, NULL);
