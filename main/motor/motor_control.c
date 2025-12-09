@@ -14,7 +14,7 @@ static uint16_t speed = 500;
 static void forward(uint8_t seconds)
 {
     ESP_LOGI("MOTOR_CONTROL", "Motor A forward");
-    motor_A_set(0, -(speed));
+    motor_A_set(0, -speed);
 }
 
 static void backward(uint8_t seconds)
@@ -28,9 +28,6 @@ static void stop(void)
     ESP_LOGI("MOTOR_CONTROL", "Motor A bremse");
     motor_A_stop(1);
 }
-
-
-
 
 static void steer_neutral(void)
 {
@@ -99,13 +96,13 @@ void steering_control(void*)
 
 // Geschwindigkeits Kontrolle
 // Vor/Zurück bzw. Geschwindigkeit
-void acc_control(void*)
+void speed_control(void*)
 {
     int8_t value = 0;
-    message_acc_type ry;
+    message_speed_t ry;
     while (1) {
-        if (xQueueReceive(acc_queue, &ry, portMAX_DELAY)) {
-            printf("ACC_Queue - Empfangen: %d\n", ry.type);
+        if (xQueueReceive(speed_queue, &ry, portMAX_DELAY)) {
+            printf("SPEED_Queue - Empfangen: %d\n", ry.type);
             if (ry.type == 1){
                 switch (ry.value)
                 {
@@ -160,7 +157,7 @@ void motor_control(void){
     ESP_LOGI("MOTOR_CONTROL", "Start Init");
     motor_init();
     xTaskCreate(steering_control, "STEERING_TASK", 2048, NULL, 7, NULL);
-    xTaskCreate(acc_control, "ACC_TASK", 2048, NULL, 7, NULL);
+    xTaskCreate(speed_control, "SPEED_TASK", 2048, NULL, 7, NULL);
     ESP_LOGI("MOTOR_CONTROL", "Ende Init");
 }
 

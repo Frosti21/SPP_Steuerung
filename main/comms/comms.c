@@ -7,12 +7,12 @@
 #include "comms.h"
 QueueHandle_t led_queue;
 QueueHandle_t steering_queue;
-QueueHandle_t acc_queue;
+QueueHandle_t speed_queue;
 
-message_acc_type message_acc;
+message_speed_t message_speed;
 
 void comms_init(void){
     led_queue = xQueueCreate(10, sizeof(int));
     steering_queue = xQueueCreate(10, sizeof(int));
-    acc_queue = xQueueCreate(10, sizeof(message_acc));
+    speed_queue = xQueueCreate(10, sizeof(message_speed));
 }
