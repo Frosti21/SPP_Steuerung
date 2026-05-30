@@ -4,12 +4,12 @@
 #include <stdint.h>
 
 void motor_init(void);
-void motor_A_coast(int motor);
-void motor_A_stop(int motor);
-void motor_A_set(int motor, int speed);
+void motor_A_coast(void);
+void motor_A_stop(void);
+void motor_A_set(int speed);
 
-void motor_B_coast(int motor);
-void motor_B_stop(int motor);
-void motor_B_set(int motor, int speed);
+void motor_B_coast(void);
+void motor_B_stop(void);
+void motor_B_set(int speed);
 
 #endif // MOTOR_H
