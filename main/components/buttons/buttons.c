@@ -1,0 +1,2 @@
+#define PIN_TASTER_AUF 32 
+#define PIN_TASTER_AB 33 

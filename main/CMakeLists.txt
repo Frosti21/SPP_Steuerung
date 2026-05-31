@@ -1,2 +1,13 @@
-idf_component_register(SRCS "comms/comms.c" "ble/ble_control.c" "motor/motor_control.c" "main.c" "motor/motor.c"
-                    INCLUDE_DIRS "." "ble" "comms" "motor")
+idf_component_register(SRCS "components/comms/comms.c" 
+                            "components/ble/ble_control.c" 
+                            "components/motor/motor_control.c" 
+                            "components/motor/motor.c"
+                            "components/sensors/sensors.c"
+                            "components/sensors/sensors_control.c"
+                            "main.c" 
+                    INCLUDE_DIRS "." 
+                            "components/ble" 
+                            "components/comms" 
+                            "components/motor"
+                            "components/sensors"
+                    )
