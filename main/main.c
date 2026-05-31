@@ -21,7 +21,7 @@ void ble_task(void *p)
 
 void app_main()
 {
-
+    printf("Hello World");
     comms_init(); // Task kommunikation - initialisieren 
     motor_control();
     sensor_control_init();
