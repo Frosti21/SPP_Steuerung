@@ -1,36 +1,56 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- |
+# Solarschirm Steuerung
 
-# _Sample project_
+Programmiert für und mit ESP-IDF 5.5.1
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## Voraussetzungen
 
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+- [ESP-IDF 5.5.1](https://docs.espressif.com/projects/esp-idf/en/v5.5.1/esp32/get-started/index.html) installiert und konfiguriert
+- Unterstützte Targets: ESP32 / ESP32-C3 / ESP32-S3
 
+## Einstellungen
 
+### Bluetooth – NimBLE aktivieren
 
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
+Vor dem ersten Build muss ggf. NimBLE als Bluetooth-Stack eingestellt werden:
 
-## Example folder contents
+```bash
+idf.py menuconfig
+```
 
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
-
-Below is short explanation of remaining files in the project folder.
+Dann navigieren zu:
 
 ```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
+Component config → Bluetooth → Bluetooth Host → NimBLE
 ```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
-"# BLE-Connect" 
+
+## Build & Flash
+
+
+### Port konfigurieren
+```bash
+# Verfügbare Ports anzeigen
+# Linux/macOS:
+ls /dev/tty*
+# Windows: Geräte-Manager → Anschlüsse (COM & LPT)
+
+Den Port `/dev/ttyUSB0` entsprechend anpassen (Windows: `COM3`, macOS: `/dev/cu.usbserial-...`)
+
+# Projekt konfigurieren (Target setzen, einmalig)
+idf.py set-target esp32
+```
+### Das Projekt kann entweder über den Flammen-Button (unten Mitte) oder über die Console gebaut werden.
+
+```bash
+idf.py build
+
+# Bauen
+# Flashen
+idf.py -p /dev/ttyUSB0 flash
+
+# Monitor (optional)
+idf.py -p /dev/ttyUSB0 monitor
+
+# Flash + Monitor kombiniert
+idf.py -p /dev/ttyUSB0 flash monitor
+
+```
