@@ -1,88 +1,59 @@
 #include "sensors.h"
-
+#include "motor.h"
+#include "adc_shared.h"
 #include "driver/gpio.h"
-#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/portmacro.h"
+#include "esp_log.h"
+
+#include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
 
 /* ============================================================
  * PIN DEFINITIONEN
  * ============================================================ */
 
-#define PIN_WIND        16      // Windsensor (Reedkontakt)
-#define PIN_REGEN       23      // Regensensor (LOW = aktiv)
-#define PIN_TASTER_AUF  32      // Taster Auf  (LOW = gedrückt)
-#define PIN_TASTER_AB   33      // Taster Ab   (LOW = gedrückt)
-#define PIN_END_OBEN    18      // Endschalter oben  (NC: LOW = ausgelöst)
-#define PIN_END_UNTEN   19      // Endschalter unten (NC: LOW = ausgelöst)
+#define PIN_REGEN       23
+#define PIN_TASTER_AUF  33
+#define PIN_TASTER_AB   32
+#define PIN_END_OBEN    19
+#define PIN_END_UNTEN   18
 
 /* ============================================================
- * WIND KONFIGURATION
+ * WIND / ADC KONFIGURATION
  * ============================================================ */
 
-#define WIND_AVG_COUNT          5       // Anzahl Werte für gleitenden Durchschnitt
-#define WIND_CALC_INTERVAL_MS   1000    // Berechnungsintervall in ms
-#define WIND_DEBOUNCE_US        10000   // Entprellzeit in Mikrosekunden (10ms)
-#define PULSES_PER_SECOND_TO_KMH 2.0f  // Umrechnungsfaktor Impulse/s → km/h
+#define WIND_ADC_CHANNEL    ADC_CHANNEL_6   // GPIO34
+#define WIND_AVG_SAMPLES    20
+
+#define WIND_MV_MIN         0               // mV bei 0 km/h   → anpassen!
+#define WIND_MV_MAX         3300            // mV bei max km/h  → anpassen!
+#define WIND_KMH_MAX        150.0f          // km/h bei WIND_MV_MAX → anpassen!
 
 /* ============================================================
- * INTERNE VARIABLEN - WIND
+ * INTERNE VARIABLEN
  * ============================================================ */
 
-static volatile uint32_t  wind_pulses       = 0;
-static volatile int64_t   wind_last_pulse   = 0;
+static adc_oneshot_unit_handle_t wind_adc_handle;
+static adc_cali_handle_t         wind_cali_handle;
 
-static float wind_speed                     = 0.0f;
-static float wind_average                   = 0.0f;
-static float wind_buffer[WIND_AVG_COUNT]    = {0};
-static int   wind_index                     = 0;
+static float wind_samples[WIND_AVG_SAMPLES] = {0};
+static int   wind_sample_idx = 0;
+static float wind_speed_kmh  = 0.0f;
+static float wind_avg_kmh    = 0.0f;
 
 /* ============================================================
- * ISR - WINDSENSOR
+ * HILFSFUNKTION: mV → km/h
  * ============================================================ */
 
-static void IRAM_ATTR wind_isr_handler(void *arg)
+static float mv_to_kmh(int mv)
 {
-    int64_t now = esp_timer_get_time();   // Mikrosekunden
+    if (mv <= WIND_MV_MIN) return 0.0f;
+    if (mv >= WIND_MV_MAX) return WIND_KMH_MAX;
 
-    if ((now - wind_last_pulse) > WIND_DEBOUNCE_US) {
-        wind_pulses++;
-        wind_last_pulse = now;
-    }
-}
-
-/* ============================================================
- * TASK - WINDBERECHNUNG
- * Läuft alle WIND_CALC_INTERVAL_MS und berechnet
- * Geschwindigkeit + gleitenden Durchschnitt
- * ============================================================ */
-
-static void wind_calc_task(void *arg)
-{
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(WIND_CALC_INTERVAL_MS));
-
-        /* Kritischer Abschnitt: Zähler atomar lesen + zurücksetzen */
-        portDISABLE_INTERRUPTS();
-        uint32_t pulses = wind_pulses;
-        wind_pulses = 0;
-        portENABLE_INTERRUPTS();
-
-        /* Geschwindigkeit berechnen */
-        wind_speed = (float)pulses * PULSES_PER_SECOND_TO_KMH;
-
-        /* Ringpuffer befüllen */
-        wind_buffer[wind_index] = wind_speed;
-        wind_index = (wind_index + 1) % WIND_AVG_COUNT;
-
-        /* Gleitenden Durchschnitt berechnen */
-        float sum = 0.0f;
-        for (int i = 0; i < WIND_AVG_COUNT; i++) {
-            sum += wind_buffer[i];
-        }
-        wind_average = sum / WIND_AVG_COUNT;
-    }
+    return ((float)(mv - WIND_MV_MIN) /
+            (float)(WIND_MV_MAX - WIND_MV_MIN)) * WIND_KMH_MAX;
 }
 
 /* ============================================================
@@ -91,17 +62,44 @@ static void wind_calc_task(void *arg)
 
 void sensors_init(void)
 {
-    /* ---- Windsensor (Interrupt, fallende Flanke) ---- */
-    gpio_config_t wind_conf = {
-        .pin_bit_mask = (1ULL << PIN_WIND),
-        .mode         = GPIO_MODE_INPUT,
-        .pull_up_en   = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type    = GPIO_INTR_NEGEDGE,
-    };
-    gpio_config(&wind_conf);
 
-    /* ---- Eingänge ohne Interrupt (kein intr_type nötig) ---- */
+        // KEIN adc_oneshot_new_unit mehr!
+        wind_adc_handle = motor_adc_handle;  // Handle von motor.c übernehmen
+
+        // Kanal für Windsensor hinzufügen
+        adc_oneshot_chan_cfg_t chan_cfg = {
+            .atten    = ADC_ATTEN_DB_12,
+            .bitwidth = ADC_BITWIDTH_12,
+        };
+        ESP_ERROR_CHECK(adc_oneshot_config_channel(
+            wind_adc_handle, WIND_ADC_CHANNEL, &chan_cfg));
+
+            
+    // /* ---- ADC Unit ---- */
+    // adc_oneshot_unit_init_cfg_t unit_cfg = {
+    //     .unit_id  = ADC_UNIT_1,
+    //     .ulp_mode = ADC_ULP_MODE_DISABLE,
+    // };
+    // ESP_ERROR_CHECK(adc_oneshot_new_unit(&unit_cfg, &wind_adc_handle));
+
+    // /* ---- Kanal ---- */
+    // adc_oneshot_chan_cfg_t chan_cfg = {
+    //     .atten    = ADC_ATTEN_DB_12,
+    //     .bitwidth = ADC_BITWIDTH_12,
+    // // };
+    // ESP_ERROR_CHECK(adc_oneshot_config_channel(
+    //     wind_adc_handle, WIND_ADC_CHANNEL, &chan_cfg));
+
+    /* ---- Kalibrierung ---- */
+    adc_cali_line_fitting_config_t cali_cfg = {
+        .unit_id  = ADC_UNIT_1,
+        .atten    = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_12,
+    };
+    ESP_ERROR_CHECK(adc_cali_create_scheme_line_fitting(
+        &cali_cfg, &wind_cali_handle));
+
+    /* ---- Digitale Eingänge ---- */
     gpio_config_t input_conf = {
         .pin_bit_mask = (1ULL << PIN_REGEN)      |
                         (1ULL << PIN_TASTER_AUF) |
@@ -114,63 +112,38 @@ void sensors_init(void)
         .intr_type    = GPIO_INTR_DISABLE,
     };
     gpio_config(&input_conf);
-
-    /* ---- ISR Service + Handler registrieren ---- */
-    gpio_install_isr_service(0);
-    gpio_isr_handler_add(PIN_WIND, wind_isr_handler, NULL);
-
-    /* ---- Wind-Berechnungs-Task starten ---- */
-    xTaskCreate(
-        wind_calc_task,     // Task-Funktion
-        "wind_calc",        // Name (Debug)
-        2048,               // Stack in Bytes
-        NULL,               // Parameter
-        5,                  // Priorität
-        NULL                // Task-Handle (nicht benötigt)
-    );
 }
 
 /* ============================================================
- * ÖFFENTLICHE GETTER - WIND
+ * WIND UPDATE – alle 50ms vom sensor_monitor_task aufgerufen
  * ============================================================ */
 
-float wind_get_speed(void)
+void wind_sensor_update(void)
 {
-    return wind_speed;
-}
+    int raw = 0, mv = 0;
 
-float wind_get_average(void)
-{
-    return wind_average;
+    ESP_ERROR_CHECK(adc_oneshot_read(wind_adc_handle, WIND_ADC_CHANNEL, &raw));
+    ESP_ERROR_CHECK(adc_cali_raw_to_voltage(wind_cali_handle, raw, &mv));
+
+    wind_speed_kmh = mv_to_kmh(mv);
+
+    wind_samples[wind_sample_idx] = wind_speed_kmh;
+    wind_sample_idx = (wind_sample_idx + 1) % WIND_AVG_SAMPLES;
+
+    float sum = 0.0f;
+    for (int i = 0; i < WIND_AVG_SAMPLES; i++) sum += wind_samples[i];
+    wind_avg_kmh = sum / WIND_AVG_SAMPLES;
 }
 
 /* ============================================================
- * ÖFFENTLICHE GETTER - SENSOREN
+ * GETTER
  * ============================================================ */
 
-bool rain_is_active(void)
-{
-    return gpio_get_level(PIN_REGEN) == 0;
-}
+float wind_get_speed(void)   { return wind_speed_kmh; }
+float wind_get_average(void) { return wind_avg_kmh;   }
 
-bool button_up_is_pressed(void)
-{
-    return gpio_get_level(PIN_TASTER_AUF) == 0;
-}
-
-bool button_down_is_pressed(void)
-{
-    return gpio_get_level(PIN_TASTER_AB) == 0;
-}
-
-/* NC-Endschalter: im Normalzustand geschlossen (HIGH durch Pull-up)
-   Ausgelöst = Kontakt öffnet = Pin geht auf LOW */
-bool end_switch_top_triggered(void)
-{
-    return gpio_get_level(PIN_END_OBEN) == 0;
-}
-
-bool end_switch_bottom_triggered(void)
-{
-    return gpio_get_level(PIN_END_UNTEN) == 0;
-}
+bool rain_is_active(void)            { return gpio_get_level(PIN_REGEN)      == 0; }
+bool button_up_is_pressed(void)      { return gpio_get_level(PIN_TASTER_AUF) == 0; }
+bool button_down_is_pressed(void)    { return gpio_get_level(PIN_TASTER_AB)  == 0; }
+bool end_switch_top_triggered(void)  { return gpio_get_level(PIN_END_OBEN)   == 1; }
+bool end_switch_bottom_triggered(void) { return gpio_get_level(PIN_END_UNTEN) == 1; }

@@ -4,6 +4,8 @@ idf_component_register(SRCS "components/comms/comms.c"
                             "components/motor/motor.c"
                             "components/sensors/sensors.c"
                             "components/sensors/sensors_control.c"
+                            "components/sensors/adc_shared"
+
                             "main.c" 
                     INCLUDE_DIRS "." 
                             "components/ble" 

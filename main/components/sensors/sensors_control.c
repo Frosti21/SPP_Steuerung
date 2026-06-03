@@ -7,6 +7,9 @@
 #include "freertos/queue.h"
 #include "esp_log.h"
 
+// Fehlt oben in sensors_control.c:
+#include <math.h>
+
 #define TAG "SENSOR_CONTROL"
 
 /* ============================================================
@@ -117,11 +120,13 @@ static void sensor_monitor_task(void *arg)
             send_event(SENSOR_END_UNTEN, end_unten, 0.0f, 0.0f);
         }
 
+
         /* ---- Windsensor (nur bei relevanter Änderung) ---- */
-        float avg = wind_get_average();
-        if ((avg - last.wind_avg) >  WIND_CHANGE_THRESHOLD ||
-            (avg - last.wind_avg) < -WIND_CHANGE_THRESHOLD) {
-            last.wind_avg = avg;
+    wind_sensor_update();   // <-- neu: ADC lesen & Mittelwert berechnen
+
+    float avg = wind_get_average();
+    if (fabsf(avg - last.wind_avg) > WIND_CHANGE_THRESHOLD) {
+        last.wind_avg = avg;
             float speed = wind_get_speed();
             ESP_LOGI(TAG, "Wind: %.1f km/h (Ø %.1f km/h)", speed, avg);
             send_event(SENSOR_WIND, true, speed, avg);
@@ -148,7 +153,7 @@ void sensor_control_init(void)
     xTaskCreate(
         sensor_monitor_task,    // Task-Funktion
         "SENSOR_MONITOR",       // Name (Debug)
-        2048,                   // Stack in Bytes
+        4096,                   // Stack in Bytes
         NULL,                   // Parameter
         6,                      // Priorität
         NULL                    // Task-Handle (nicht benötigt)

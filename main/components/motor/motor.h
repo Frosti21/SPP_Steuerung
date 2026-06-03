@@ -2,6 +2,12 @@
 #define MOTOR_H
 
 #include <stdint.h>
+// motor.h
+#include "esp_adc/adc_oneshot.h"
+
+// Shared ADC Handle – nutzbar von anderen Komponenten (z.B. sensors)
+extern adc_oneshot_unit_handle_t motor_adc_handle;
+
 
 void motor_init(void);
 void motor_A_coast(void);

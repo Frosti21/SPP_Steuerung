@@ -4,7 +4,7 @@
 
 #include "esp_log.h"
 #include "esp_event.h"
-
+#include "adc_shared.h"
 
 #include "motor_control.h"
 #include "ble_control.h"
@@ -21,6 +21,7 @@ void ble_task(void *p)
 
 void app_main()
 {
+    adc_shared_init();       // ← einmalig, ganz zuerst!
     printf("Hello World");
     comms_init(); // Task kommunikation - initialisieren 
     motor_control();

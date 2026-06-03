@@ -44,7 +44,7 @@ static const char *TAG = "MOTOR";
 #define MOTOR_B_IS_ADC_CHANNEL       ADC_CHANNEL_7   // z.B. GPIO35
 
 // ADC Handle (für esp_adc/adc_oneshot API)
-static adc_oneshot_unit_handle_t adc_handle = NULL;
+adc_oneshot_unit_handle_t motor_adc_handle = NULL;
 
 // ─────────────────────────────────────────────
 // PWM-Konfiguration
@@ -117,14 +117,14 @@ void motor_init(void)
     adc_oneshot_unit_init_cfg_t adc_cfg = {
         .unit_id = ADC_UNIT_1,
     };
-    ESP_ERROR_CHECK(adc_oneshot_new_unit(&adc_cfg, &adc_handle));
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&adc_cfg, &motor_adc_handle));
 
     adc_oneshot_chan_cfg_t chan_cfg = {
         .bitwidth = ADC_BITWIDTH_12,
         .atten    = ADC_ATTEN_DB_12   // bis ~3.3V messbar
     };
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, MOTOR_A_IS_ADC_CHANNEL, &chan_cfg));
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, MOTOR_B_IS_ADC_CHANNEL, &chan_cfg));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(motor_adc_handle, MOTOR_A_IS_ADC_CHANNEL, &chan_cfg));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(motor_adc_handle, MOTOR_B_IS_ADC_CHANNEL, &chan_cfg));
 
     ESP_LOGI(TAG, "Motor-Treiber initialisiert");
 }
@@ -223,13 +223,13 @@ void motor_B_coast(void)
 
 float motor_A_get_current(void)
 {
-    if (adc_handle == NULL) {
+    if (motor_adc_handle == NULL) {
         ESP_LOGW(TAG, "ADC nicht initialisiert");
         return -1.0f;
     }
 
     int adc_raw = 0;
-    esp_err_t err = adc_oneshot_read(adc_handle, MOTOR_A_IS_ADC_CHANNEL, &adc_raw);
+    esp_err_t err = adc_oneshot_read(motor_adc_handle, MOTOR_A_IS_ADC_CHANNEL, &adc_raw);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "ADC Lesefehler Motor A: %s", esp_err_to_name(err));
         return -1.0f;
@@ -242,13 +242,13 @@ float motor_A_get_current(void)
 
 float motor_B_get_current(void)
 {
-    if (adc_handle == NULL) {
+    if (motor_adc_handle == NULL) {
         ESP_LOGW(TAG, "ADC nicht initialisiert");
         return -1.0f;
     }
 
     int adc_raw = 0;
-    esp_err_t err = adc_oneshot_read(adc_handle, MOTOR_B_IS_ADC_CHANNEL, &adc_raw);
+    esp_err_t err = adc_oneshot_read(motor_adc_handle, MOTOR_B_IS_ADC_CHANNEL, &adc_raw);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "ADC Lesefehler Motor B: %s", esp_err_to_name(err));
         return -1.0f;
