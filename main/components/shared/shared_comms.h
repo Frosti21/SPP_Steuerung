@@ -1,5 +1,5 @@
-#ifndef COMMS_H
-#define COMMS_H
+#ifndef SHARED_COMMS_H
+#define SHARED_COMMS_H
 
 // message_acc_type -> für die Geschwindigkeits kommunikation, zwei Funktionen über die selbe Queue
 // Type -> Geschwindigkeitswerte oder Richtung (Vor-Zurück)
@@ -16,6 +16,8 @@ extern QueueHandle_t led_queue;
 extern QueueHandle_t steering_queue;
 extern QueueHandle_t speed_queue;
 
+extern QueueHandle_t sensor_queue;
+
 void comms_init(void);
-#endif // COMMS
+#endif // SHARED_COMMS_H
 

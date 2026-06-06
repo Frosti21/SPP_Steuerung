@@ -1,5 +1,5 @@
-#ifndef ADC_SHARED_H
-#define ADC_SHARED_H
+#ifndef SHARED_ADC_H
+#define SHARED_ADC_H
 
 #include "esp_adc/adc_oneshot.h"
 
@@ -9,4 +9,4 @@ extern adc_oneshot_unit_handle_t adc1_shared_handle;
 
 void adc_shared_init(void);
 
-#endif // ADC_SHARED_H
+#endif // SHARED_ADC_H

@@ -1,6 +1,5 @@
 #ifndef SENSORS_H
 #define SENSORS_H
-#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

@@ -9,6 +9,7 @@
 #include "motor.h"
 #include <stdio.h>
 #include <math.h>
+#include "shared_adc.h"
 
 static const char *TAG = "MOTOR";
 
@@ -113,21 +114,22 @@ void motor_init(void)
     gpio_set_level(MOTOR_B_R_EN_PIN, 1);
     gpio_set_level(MOTOR_B_L_EN_PIN, 1);
 
-    // --- ADC für Strommessung initialisieren ---
-    adc_oneshot_unit_init_cfg_t adc_cfg = {
-        .unit_id = ADC_UNIT_1,
-    };
-    ESP_ERROR_CHECK(adc_oneshot_new_unit(&adc_cfg, &motor_adc_handle));
+    // // --- ADC für Strommessung initialisieren ---
+    // adc_oneshot_unit_init_cfg_t adc_cfg = {
+    //     .unit_id = ADC_UNIT_1,
+    // };
+    // ESP_ERROR_CHECK(adc_oneshot_new_unit(&adc_cfg, &motor_adc_handle));
 
-    adc_oneshot_chan_cfg_t chan_cfg = {
-        .bitwidth = ADC_BITWIDTH_12,
-        .atten    = ADC_ATTEN_DB_12   // bis ~3.3V messbar
-    };
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(motor_adc_handle, MOTOR_A_IS_ADC_CHANNEL, &chan_cfg));
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(motor_adc_handle, MOTOR_B_IS_ADC_CHANNEL, &chan_cfg));
+    // adc_oneshot_chan_cfg_t chan_cfg = {
+    //     .bitwidth = ADC_BITWIDTH_12,
+    //     .atten    = ADC_ATTEN_DB_12   // bis ~3.3V messbar
+    // };
+    // ESP_ERROR_CHECK(adc_oneshot_config_channel(motor_adc_handle, MOTOR_A_IS_ADC_CHANNEL, &chan_cfg));
+    // ESP_ERROR_CHECK(adc_oneshot_config_channel(motor_adc_handle, MOTOR_B_IS_ADC_CHANNEL, &chan_cfg));
 
     ESP_LOGI(TAG, "Motor-Treiber initialisiert");
 }
+
 
 
 // ═════════════════════════════════════════════

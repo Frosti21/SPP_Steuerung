@@ -16,7 +16,7 @@
 #include <ctype.h> 
 
 #include "ble_control.h"
-#include "comms.h"
+#include "shared_comms.h"
 char *TAG = "BLE-Server";
 uint8_t ble_addr_type;
 
@@ -49,8 +49,8 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     {
         ESP_LOGI("GAP", "BLE GAP EVENT - forward");
         // send = 1;
-        message_speed.type = 1;
-        message_speed.value = 1;
+        message_speed.type = 2;
+        message_speed.value = 2;
         xQueueSend(speed_queue, &message_speed, portMAX_DELAY);
     }
     else if ((strncmp(data, "backward", ctxt->om->om_len) == 0)  | (strncmp(data, "b", ctxt->om->om_len) == 0)|
@@ -58,8 +58,8 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
     {
         ESP_LOGI("GAP", "BLE GAP EVENT - backward");
         // send = 2;
-        message_speed.type = 1;
-        message_speed.value = 2;
+        message_speed.type = 3;
+        message_speed.value = 3;
         xQueueSend(speed_queue, &message_speed, portMAX_DELAY);
     }
     else if ((strncmp(data, "break", ctxt->om->om_len) == 0) | (strncmp(data, "br", ctxt->om->om_len) == 0)|

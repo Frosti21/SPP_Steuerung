@@ -1,4 +1,4 @@
-#include "adc_shared.h"
+#include "shared_adc.h"
 
 adc_oneshot_unit_handle_t adc1_shared_handle = NULL;
 

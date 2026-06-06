@@ -6,6 +6,8 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "esp_log.h"
+#include "shared_comms.h"
+
 
 // Fehlt oben in sensors_control.c:
 #include <math.h>
@@ -17,7 +19,7 @@
  * ============================================================ */
 
 #define SENSOR_POLL_MS      50      // Pollingrate für Zustandserkennung
-#define SENSOR_QUEUE_SIZE   10      // Max. Events in der Queue
+#define SENSOR_QUEUE_SIZE   20      // Max. Events in der Queue
 
 /* Windgeschwindigkeit: ab welcher Änderung ein Event gesendet wird */
 #define WIND_CHANGE_THRESHOLD  0.5f
@@ -26,7 +28,7 @@
  * ÖFFENTLICHE QUEUE
  * ============================================================ */
 
-QueueHandle_t sensor_queue = NULL;
+// QueueHandle_t sensor_queue = NULL;
 
 /* ============================================================
  * INTERNER ZUSTAND (letzter bekannter Zustand je Sensor)
@@ -80,13 +82,13 @@ static void sensor_monitor_task(void *arg)
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(SENSOR_POLL_MS));
 
-        /* ---- Regensensor ---- */
-        bool regen = rain_is_active();
-        if (regen != last.regen) {
-            last.regen = regen;
-            ESP_LOGI(TAG, "Regen: %s", regen ? "aktiv" : "inaktiv");
-            send_event(SENSOR_REGEN, regen, 0.0f, 0.0f);
-        }
+        // /* ---- Regensensor ---- */
+        // bool regen = rain_is_active();
+        // if (regen != last.regen) {
+        //     last.regen = regen;
+        //     ESP_LOGI(TAG, "Regen: %s", regen ? "aktiv" : "inaktiv");
+        //     send_event(SENSOR_REGEN, regen, 0.0f, 0.0f);
+        // }
 
         /* ---- Taster Auf ---- */
         bool taster_auf = button_up_is_pressed();
@@ -155,7 +157,7 @@ void sensor_control_init(void)
         "SENSOR_MONITOR",       // Name (Debug)
         4096,                   // Stack in Bytes
         NULL,                   // Parameter
-        6,                      // Priorität
+        5,                      // Priorität
         NULL                    // Task-Handle (nicht benötigt)
     );
 

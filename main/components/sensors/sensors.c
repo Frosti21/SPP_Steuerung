@@ -1,6 +1,3 @@
-#include "sensors.h"
-#include "motor.h"
-#include "adc_shared.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -9,6 +6,12 @@
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
+
+
+#include "sensors.h"
+#include "motor.h"
+#include "shared_adc.h"
+
 
 /* ============================================================
  * PIN DEFINITIONEN
@@ -30,6 +33,7 @@
 #define WIND_MV_MIN         0               // mV bei 0 km/h   → anpassen!
 #define WIND_MV_MAX         3300            // mV bei max km/h  → anpassen!
 #define WIND_KMH_MAX        150.0f          // km/h bei WIND_MV_MAX → anpassen!
+#define WIND_MV_CORR        142             // Sensor Spannungskorrektur in mV
 
 /* ============================================================
  * INTERNE VARIABLEN
@@ -64,7 +68,7 @@ void sensors_init(void)
 {
 
         // KEIN adc_oneshot_new_unit mehr!
-        wind_adc_handle = motor_adc_handle;  // Handle von motor.c übernehmen
+        wind_adc_handle = adc1_shared_handle;  // Handle von motor.c übernehmen
 
         // Kanal für Windsensor hinzufügen
         adc_oneshot_chan_cfg_t chan_cfg = {
@@ -75,21 +79,6 @@ void sensors_init(void)
             wind_adc_handle, WIND_ADC_CHANNEL, &chan_cfg));
 
             
-    // /* ---- ADC Unit ---- */
-    // adc_oneshot_unit_init_cfg_t unit_cfg = {
-    //     .unit_id  = ADC_UNIT_1,
-    //     .ulp_mode = ADC_ULP_MODE_DISABLE,
-    // };
-    // ESP_ERROR_CHECK(adc_oneshot_new_unit(&unit_cfg, &wind_adc_handle));
-
-    // /* ---- Kanal ---- */
-    // adc_oneshot_chan_cfg_t chan_cfg = {
-    //     .atten    = ADC_ATTEN_DB_12,
-    //     .bitwidth = ADC_BITWIDTH_12,
-    // // };
-    // ESP_ERROR_CHECK(adc_oneshot_config_channel(
-    //     wind_adc_handle, WIND_ADC_CHANNEL, &chan_cfg));
-
     /* ---- Kalibrierung ---- */
     adc_cali_line_fitting_config_t cali_cfg = {
         .unit_id  = ADC_UNIT_1,
@@ -123,8 +112,9 @@ void wind_sensor_update(void)
     int raw = 0, mv = 0;
 
     ESP_ERROR_CHECK(adc_oneshot_read(wind_adc_handle, WIND_ADC_CHANNEL, &raw));
+    
     ESP_ERROR_CHECK(adc_cali_raw_to_voltage(wind_cali_handle, raw, &mv));
-
+    mv = (mv-WIND_MV_CORR); // offset korrektur 
     wind_speed_kmh = mv_to_kmh(mv);
 
     wind_samples[wind_sample_idx] = wind_speed_kmh;
@@ -134,6 +124,8 @@ void wind_sensor_update(void)
     for (int i = 0; i < WIND_AVG_SAMPLES; i++) sum += wind_samples[i];
     wind_avg_kmh = sum / WIND_AVG_SAMPLES;
 }
+
+
 
 /* ============================================================
  * GETTER

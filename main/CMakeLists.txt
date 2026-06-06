@@ -1,15 +1,15 @@
-idf_component_register(SRCS "components/comms/comms.c" 
+idf_component_register(SRCS "components/shared/shared_comms.c" 
+                            "components/shared/shared_adc"
                             "components/ble/ble_control.c" 
                             "components/motor/motor_control.c" 
                             "components/motor/motor.c"
                             "components/sensors/sensors.c"
                             "components/sensors/sensors_control.c"
-                            "components/sensors/adc_shared"
 
                             "main.c" 
                     INCLUDE_DIRS "." 
                             "components/ble" 
-                            "components/comms" 
+                            "components/shared" 
                             "components/motor"
                             "components/sensors"
                     )
